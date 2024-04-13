@@ -13,6 +13,8 @@ public class Comment {
     private String commentText;
     private Date timestamp;
 
+
+
     public Comment() {}
 
     public String getId() {
@@ -63,6 +65,8 @@ public class Comment {
         this.timestamp = timestamp;
     }
 
-    // Getters and setters...
+
+
+
 }
 

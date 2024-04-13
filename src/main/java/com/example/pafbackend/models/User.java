@@ -20,7 +20,7 @@ public class User {
     public User() {
     }
 
-    // All-args constructor
+
     public User(String id, String username, String email, String hashedPassword,
                 String profilePictureUrl, String bio, String fitnessGoals, boolean profileVisibility) {
         this.id = id;

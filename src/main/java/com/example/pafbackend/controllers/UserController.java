@@ -60,16 +60,5 @@ public class UserController {
         userRepository.deleteById(id);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
-        Optional<User> user = userRepository.findByUsername(username);
 
-        if (user.isPresent() && user.get().getHashedPassword().equals(password)) {
-            // For demonstration: Just return a success message.
-            // Ideally, you should return a JWT token or a session cookie.
-            return ResponseEntity.ok().body("User logged in successfully!");
-        }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
-    }
 }
