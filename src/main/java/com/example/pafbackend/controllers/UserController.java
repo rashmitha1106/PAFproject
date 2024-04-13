@@ -1,5 +1,6 @@
 package com.example.pafbackend.controllers;
 
+import com.example.pafbackend.models.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -35,8 +36,8 @@ public class UserController {
     }
 
     // Update a user by ID
-    @PutMapping("/{id}")
-    public User updateUser(@PathVariable String id, @RequestBody User updatedUser) {
+    /*@PutMapping("/{id}")
+    public UserProfile updateUser(@PathVariable String id, @RequestBody User updatedUser) {
         return userRepository.findById(id)
                 .map(user -> {
                     user.setUsername(updatedUser.getUsername());
@@ -52,7 +53,7 @@ public class UserController {
                     updatedUser.setId(id);
                     return userRepository.save(updatedUser);
                 });
-    }
+    }*/
 
     // Delete a user by ID
     @DeleteMapping("/{id}")

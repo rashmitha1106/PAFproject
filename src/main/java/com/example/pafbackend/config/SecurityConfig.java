@@ -1,9 +1,18 @@
 package com.example.pafbackend.config;
 
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,11 +20,18 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.oauth2.*;
+
 
 import java.util.List;
 
@@ -28,9 +44,18 @@ public class SecurityConfig {
     @Autowired
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
+    @Autowired
+    JwtToUserConverter jwtToUserConverter;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    KeyUtils keyUtils;
 
 
-
+    @Autowired
+    UserDetailsManager userDetailsManager;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
@@ -41,12 +66,12 @@ public class SecurityConfig {
                   auth.requestMatchers( "/api/users/login","/api/users/create").permitAll();
                   auth.anyRequest().authenticated();
                 })
-                /*.oauth2Login(
+               .oauth2Login(
                         oauth2-> oauth2.successHandler(oAuth2LoginSuccessHandler)
                 )
-                .formLogin(Customizer.withDefaults())*/
+                /* .formLogin(Customizer.withDefaults())*/
                 .oauth2ResourceServer
-                        ((oauth2)->oauth2.jwt((jwt)->jwt.jwtAuthenticationConverter("")))
+                        ((oauth2)->oauth2.jwt((jwt)->jwt.jwtAuthenticationConverter(jwtToUserConverter)))
                 .sessionManagement((session)->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .build();
@@ -64,4 +89,50 @@ public class SecurityConfig {
     }
 
 
+    @Bean
+    @Primary
+    JwtDecoder jwtAccessTokenDecoder(){
+        return NimbusJwtDecoder.withPublicKey(keyUtils.getAccessTokenPublicKey()).build();
+    }
+
+    @Bean
+    @Primary
+    JwtEncoder jwtAccessTokenEncoder(){
+        JWK jwk = new RSAKey.Builder(keyUtils.getAccessTokenPublicKey()).privateKey(keyUtils.getRefreshTokenPrivateKey()).build();
+
+        JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
+        return  new NimbusJwtEncoder(jwkSource);
+    }
+    @Bean
+    @Qualifier("jwtRefreshTokenDecoder")
+    JwtDecoder jwtRefreshTokenDecoder() {
+        return NimbusJwtDecoder.withPublicKey(keyUtils.getRefreshTokenPublicKey()).build();
+    }
+
+    @Bean
+    @Qualifier("jwtRefreshTokenEncoder")
+    JwtEncoder jwtRefreshTokenEncoder() {
+        JWK jwk = new RSAKey
+                .Builder(keyUtils.getRefreshTokenPublicKey())
+                .privateKey(keyUtils.getRefreshTokenPrivateKey())
+                .build();
+        JWKSource<SecurityContext> jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
+        return new NimbusJwtEncoder(jwks);
+    }
+
+    @Bean
+    @Qualifier("jwtRefreshTokenAuthProvider")
+    JwtAuthenticationProvider jwtRefreshTokenAuthProvider() {
+        JwtAuthenticationProvider provider = new JwtAuthenticationProvider(jwtRefreshTokenDecoder());
+        provider.setJwtAuthenticationConverter(jwtToUserConverter);
+        return provider;
+    }
+
+    @Bean
+    DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(userDetailsManager);
+        return provider;
+    }
 }
