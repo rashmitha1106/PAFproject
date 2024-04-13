@@ -63,13 +63,10 @@ public class SecurityConfig {
                 .cors(cors->cors.configurationSource(corsConfiguration()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
-                  auth.requestMatchers( "/api/users/login","/api/users/create").permitAll();
+                  auth.requestMatchers( "/api/auth/register","/api/auth/login").permitAll();
                   auth.anyRequest().authenticated();
                 })
-               .oauth2Login(
-                        oauth2-> oauth2.successHandler(oAuth2LoginSuccessHandler)
-                )
-                /* .formLogin(Customizer.withDefaults())*/
+
                 .oauth2ResourceServer
                         ((oauth2)->oauth2.jwt((jwt)->jwt.jwtAuthenticationConverter(jwtToUserConverter)))
                 .sessionManagement((session)->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -98,7 +95,7 @@ public class SecurityConfig {
     @Bean
     @Primary
     JwtEncoder jwtAccessTokenEncoder(){
-        JWK jwk = new RSAKey.Builder(keyUtils.getAccessTokenPublicKey()).privateKey(keyUtils.getRefreshTokenPrivateKey()).build();
+        JWK jwk = new RSAKey.Builder(keyUtils.getAccessTokenPublicKey()).privateKey(keyUtils.getAccessTokenPrivateKey()).build();
 
         JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
         return  new NimbusJwtEncoder(jwkSource);
@@ -130,6 +127,7 @@ public class SecurityConfig {
 
     @Bean
     DaoAuthenticationProvider daoAuthenticationProvider() {
+        log.info("===== dao authentication provider called");
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setPasswordEncoder(passwordEncoder);
         provider.setUserDetailsService(userDetailsManager);

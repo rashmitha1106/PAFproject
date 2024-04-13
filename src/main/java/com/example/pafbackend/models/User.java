@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collections;
 import java.util.List;
-
+import org.springframework.data.mongodb.core.index.Indexed;
 @Document(collection = "users")
 @Data
 @Setter
@@ -16,6 +16,7 @@ public class User implements UserDetails {
 
     @Id
     private String id;
+
     private String username;
 
     private String password;

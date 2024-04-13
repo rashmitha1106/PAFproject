@@ -17,9 +17,13 @@ import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 @Component
 public class TokenGenerator {
+    private static final Logger logger = LoggerFactory.getLogger(TokenGenerator.class);
     @Autowired
     JwtEncoder accessTokenEncoder;
 
@@ -38,7 +42,12 @@ public class TokenGenerator {
                 .subject(user.getId())
                 .build();
 
-        return accessTokenEncoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
+       try{
+           return accessTokenEncoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
+       }catch (Exception err){
+           logger.error("Error Generating Access Token: {}", err.getMessage(), err);
+           throw err;
+       }
     }
 
     private String createRefreshToken(Authentication authentication) {
